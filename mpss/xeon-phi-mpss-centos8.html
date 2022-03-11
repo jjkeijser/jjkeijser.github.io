@@ -132,18 +132,18 @@ is fully functional.
 You can install the <code>mpss-modules</code> file using
 
 <pre>
-  rpm -ivh https://www.nikhef.nl/~janjust/mpss/mpss-modules-4.18.0-305.3.1.el8.x86_64-3.8.6-6.x86_64.rpm
+  rpm -ivh https://github.com/jjkeijser/mpss/releases/download/MPSS3_RHEL8.5/mpss-modules-4.18.0-348.2.1.el8_5.x86_64-3.8.6-7.x86_64.rpm
 </pre>
 
 <b>Note</b>
 <br>
 Normally, a <code>weak-updates</code> link is created when a module is installed, e.g.
 <pre>
-  $  ls -al /lib/modules/4.18.0-240.1.1.el8_3.x86_64/weak-updates/
+  $  ls -al /lib/modules/4.18.0-348.12.1.el8_5.x86_64/weak-updates/
   total 4
   drwxr-xr-x 2 root root   20 Dec 17 11:32 .
   drwxr-xr-x 6 root root 4096 Dec 18 01:29 ..
-  lrwxrwxrwx 1 root root   40 Dec 17 11:32 mic.ko -&gt; ../../4.18.0-240.el8.x86_64/extra/mic.ko
+  lrwxrwxrwx 1 root root   40 Dec 17 11:32 mic.ko -&gt; ../../4.18.0-358.2.1.el8_5.x86_64/extra/mic.ko
 </pre>
 
 This link is needed for the existing kernel to find the <code>mic.ko</code> file. If the module cannot
@@ -178,11 +178,9 @@ A second issue with the <code>micctrl</code> command is that it has hardcoded re
 To overcome both of these problems, a patched version of the mpss-daemon RPM is made. The RPM and source RPM can be found here:
 
 <ul>
-  <li>RPM: <a href="mpss-daemon-3.8.6-4.el8.x86_64.rpm">mpss-daemon-3.8.6-4.el8.x86_64.rpm</a>
+  <li>RPM: <a href="https://github.com/jjkeijser/mpss/releases/download/MPSS3_RHEL8.5/mpss-daemon-3.8.6-4.el8.x86_64.rpm">mpss-daemon-3.8.6-4.el8.x86_64.rpm</a>
   </li>
-  <li>SRPM: <a href="mpss-daemon-3.8.6-4.el8.src.rpm">mpss-daemon-3.8.6-4.el8.src.rpm</a>
-  </li>
-  <li>Patch: <a href="mpss-daemon-3.8.6-el8.patch">mpss-daemon-3.8.6-el8.patch</a><br><br>
+  <li>SRPM: <a href="https://github.com/jjkeijser/mpss/releases/download/MPSS3_RHEL8.5/mpss-daemon-3.8.6-4.el8.src.rpm">mpss-daemon-3.8.6-4.el8.src.rpm</a>
   </li>
 </ul>
 
@@ -191,11 +189,11 @@ To overcome both of these problems, a patched version of the mpss-daemon RPM is 
 
 You can install the <code>mpss-daemon</code> file using
 <pre>
-  rpm -ivh https://www.nikhef.nl/~janjust/mpss/mpss-daemon-3.8.6-4.el8.x86_64.rpm
+  rpm -ivh https://github.com/jjkeijser/mpss/releases/download/MPSS3_RHEL8.5/mpss-daemon-3.8.6-4.el8.x86_64.rpm
 </pre>
 or
 <pre>
-  rpm -Uvh https://www.nikhef.nl/~janjust/mpss/mpss-daemon-3.8.6-4.el8.x86_64.rpm
+  rpm -Uvh https://github.com/jjkeijser/mpss/releases/download/MPSS3_RHEL8.5/mpss-daemon-3.8.6-4.el8.x86_64.rpm
 </pre>
 
 
