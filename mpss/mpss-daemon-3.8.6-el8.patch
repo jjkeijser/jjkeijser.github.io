@@ -1,0 +1,164 @@
+diff -Naur mpss-daemon-3.8.6/libmpssconfig/micenv.c mpss-daemon-3.8.6.el8/libmpssconfig/micenv.c
+--- mpss-daemon-3.8.6/libmpssconfig/micenv.c	2019-07-01 22:45:06.000000000 +0200
++++ mpss-daemon-3.8.6.el8/libmpssconfig/micenv.c	2020-12-11 16:00:40.717317222 +0100
+@@ -339,7 +339,7 @@
+ 	case SETENV_ENV_ISDIR:
+ 		return "Directory from environment not a directory";
+ 	case SETENV_CONFFILE_ACCESS:
+-		return "File "MPSS_CONFIG_FILE" cannot be accessed";
++		return "File \"MPSS_CONFIG_FILE\" cannot be accessed";
+ 	case SETENV_CONFFILE_FORMAT:
+ 		return "Directory from environment not a directory";
+ 	case SETENV_CONFFILE_CONTENT:
+diff -Naur mpss-daemon-3.8.6/libmpssconfig/mpssconfig.c mpss-daemon-3.8.6.el8/libmpssconfig/mpssconfig.c
+--- mpss-daemon-3.8.6/libmpssconfig/mpssconfig.c	2019-07-01 22:45:06.000000000 +0200
++++ mpss-daemon-3.8.6.el8/libmpssconfig/mpssconfig.c	2021-01-28 09:50:07.250918137 +0100
+@@ -1430,6 +1430,8 @@
+ {
+ 	struct mic_info miclist;
+ 	struct mic_info *mic = &miclist;
++	struct mic_info *firstmic = mic, *tmp;
++	int id = 0;
+ 	struct dirent *file;
+ 	DIR *dp;
+ 
+@@ -1439,14 +1441,36 @@
+ 		return NULL;
+ 	}
+ 
++	memset(mic, 0, sizeof(struct mic_info));
++
+ 	while ((file = readdir(dp)) != NULL) {
+ 		if (strncmp(file->d_name, "mic", 3))
+ 			continue;
+ 
+-		if ((mic->next = (struct mic_info *) malloc(sizeof(struct mic_info))) != NULL) {
++		if (sscanf(file->d_name, "mic%d", &id) <= 0)
++			continue;
++
++		/* list of micN devices may be out of order; find the correct spot to insert it */
++		mic = firstmic;
++		while (mic->id < id && mic->next && mic->next->id < id) {
+ 			mic = mic->next;
+-			memset(mic, 0, sizeof(struct mic_info));
+-			mic->id = atoi(&file->d_name[3]);
++		}
++
++		if ((tmp = (struct mic_info *) malloc(sizeof(struct mic_info))) != NULL) {
++			memset(tmp, 0, sizeof(struct mic_info));
++			/* two possibilities: 
++			   - First element of linked list needs a bump
++			   - we need to squeeze ourselves in 
++			*/
++			if (mic->id > id) {
++				tmp->next = mic;
++				firstmic = tmp;
++			} else {
++				tmp->next = mic->next;
++				mic->next = tmp;
++			}
++			mic = tmp;
++			mic->id = id;
+ 			mic->present = TRUE;
+ 			mic->name = mpssut_alloc_fill(file->d_name);
+ 			mic->config.name = mpssut_configname(menv, mic->name);
+@@ -1457,7 +1481,7 @@
+ 	}
+ 
+ 	closedir(dp);
+-	return miclist.next;
++	return mic;
+ }
+ 
+ struct mic_info *
+diff -Naur mpss-daemon-3.8.6/libmpssconfig/sysfs.c mpss-daemon-3.8.6.el8/libmpssconfig/sysfs.c
+--- mpss-daemon-3.8.6/libmpssconfig/sysfs.c	2019-07-01 22:45:06.000000000 +0200
++++ mpss-daemon-3.8.6.el8/libmpssconfig/sysfs.c	2020-12-18 12:09:51.278190956 +0100
+@@ -185,9 +185,8 @@
+ 
+ 	case ROOT_TYPE_NFS:
+ 	case ROOT_TYPE_SPLITNFS:
+-
+-		char *pattern = "root=nfs: ip=XXX.XXX.XXX.XXX hwaddr=00:00:00:00:00:00 netmask=ffffffff "
+-			"mtu=XXXXXX   ";
++	{
++		char *pattern = "root=nfs: ip=XXX.XXX.XXX.XXX hwaddr=00:00:00:00:00:00 netmask=ffffffff mtu=XXXXXX   ";
+ 		int cmdlinesize = 0;
+ 
+ 		if ((br = mpss_bridge_byname(mic->config.net.bridge, brlist)) != NULL) {
+@@ -224,6 +223,7 @@
+ 
+ 		break;
+ 	}
++	}
+ 
+ 	return cmdline;
+ }
+diff -Naur mpss-daemon-3.8.6/micctrl/network.c mpss-daemon-3.8.6.el8/micctrl/network.c
+--- mpss-daemon-3.8.6/micctrl/network.c	2019-07-01 22:45:06.000000000 +0200
++++ mpss-daemon-3.8.6.el8/micctrl/network.c	2021-02-08 09:43:52.470312419 +0100
+@@ -3918,6 +3918,7 @@
+ {
+ 	pid_t pid;
+ 	char *ifargv[3];
++	char  ifdown[PATH_MAX] = "/sbin/ifdown";
+ 	char *tmpname;
+ 
+ 	if (!mpssenv.live_update)
+@@ -3933,10 +3934,12 @@
+ 		fclose(stdout);
+ 		fclose(stderr);
+ 		fopen("/dev/null", "w+");
+-		ifargv[0] = "/sbin/ifup";
++		if (mpssenv.confdir)
++			snprintf(ifdown, PATH_MAX, "%s/sbin/ifdown", mpssenv.confdir);
++		ifargv[0] = ifdown;
+ 		ifargv[1] = name;
+ 		ifargv[2] = NULL;
+-		execve("/sbin/ifup", ifargv, NULL);
++		execve(ifargv[0], ifargv, NULL);
+ 		exit(errno);
+ 	}
+ 
+@@ -3949,6 +3952,7 @@
+ {
+ 	pid_t pid;
+ 	char *ifargv[3];
++	char  ifdown[PATH_MAX] = "/sbin/ifdown";
+ 	char *tmpname;
+ 
+ 	if (!mpssenv.live_update)
+@@ -3964,10 +3968,12 @@
+ 		fclose(stdout);
+ 		fclose(stderr);
+ 		fopen("/dev/null", "w+");
+-		ifargv[0] = "/sbin/ifdown";
++		if (mpssenv.confdir)
++			snprintf(ifdown, PATH_MAX, "%s/sbin/ifdown", mpssenv.confdir);
++		ifargv[0] = ifdown;
+ 		ifargv[1] = name;
+ 		ifargv[2] = NULL;
+-		execve("/sbin/ifdown", ifargv, NULL);
++		execve(ifargv[0], ifargv, NULL);
+ 		exit(errno);
+ 	}
+ 
+diff -Naur mpss-daemon-3.8.6/mpssd/mpss.redhat mpss-daemon-3.8.6.el8/mpssd/mpss.redhat
+--- mpss-daemon-3.8.6/mpssd/mpss.redhat	2019-07-01 22:45:06.000000000 +0200
++++ mpss-daemon-3.8.6.el8/mpssd/mpss.redhat	2020-12-18 15:22:46.790705701 +0100
+@@ -121,9 +121,12 @@
+ 	RETVAL=$?
+ 
+ 	if [ $RETVAL = 0 ]; then
+-		micctrl -w 1> /dev/null
+-		WAITRET=$?
+-		if [ $WAITRET = 9 ]; then
++#		micctrl -w 1> /dev/null
++#		WAITRET=$?
++#		if [ $WAITRET = 9 ]; then
++# hack: shutting down the mic adapter does not trigger the transition to 'ready'
++#       thus we force the reset
++		if [ /bin/true ]; then
+ 			echo -n $"Shutting down Intel(R) MPSS by force: "
+ 			micctrl -r 1> /dev/null
+ 			RETVAL=$?
