@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Windows PPTP Client setup</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>Connecting a Windows client to a PPTP server using X.509 certificates
+</h2>
+
+Before setting up the Windows <tt>pptp</tt> VPN connection first make sure that you have created 
+your X.509 certificates. A short tutorial on how to do this is given 
+<a href="doc_pki_setup.html">here</a>.
+<br>
+Make sure that you generate a <tt><b>pkcs12</b></tt> file (<tt>.p12</tt>) as this is required
+when importing certificates into the Windows Certificate Store. 
+<br>
+You can generate a <tt>pkcs12</tt> file from an existing client.crt and client.key set using
+<pre>
+  openssl pkcs12 -export -in client.crt -inkey client.crt -out client.p12 -nodes
+</pre>
+<br>
+The instruction listed below are for Windows 7; the instructions for either Windows XP or Windows 8 or 
+higher are very similar.
+
+<h3>Importing the .p12 file into the Windows Certificate Store</h3>
+
+<ul>
+  <li>Start the Certificate Manager console by clicking <b>Start->Run</b> and then type
+<pre>
+  certmgr.msc
+</pre>
+  </li>
+  <li>The Certificate Manager console will come up:<br>
+    <img src="certmgr1.png">
+    <br>
+    Double click on <b>Personal</b>, then on <b>Certificates</b>.
+  </li>
+  <li>Next, right click in the <tt>Personal Certificates</tt> store and select
+    <b>All Tasks -> Import</b>:
+    <br>
+    <img src="certmgr2.png">
+    <br>
+  </li>
+  <li>The "Certificate Import Wizard' will start:
+    <br>
+    <img src="certmgr3_browse.png">
+    <br>
+    Click on 'Browse' to select the <tt>.p12</tt> file to import.
+  </li>
+  <li>In the next screen, first change the file type to <b>Personal Information Exchange (.pfx, .p12)</b>:
+    <br>
+    <img src="certmgr4_pkcs12.png">
+    <br>
+    then select the file you want to import, then click <b>OK</b>.
+  </li>
+  <li>In the next screen, type in the password for the <tt>.p12</tt> file:
+    <br>
+    <img src="certmgr5_password.png">
+    <br>
+    and click <b>Next</b>:
+  </li>
+  <li>In the next screen, do <b>NOT</b> choose
+  <br>
+   'Automatically select the certificate store based on the type of certificate'
+  <br> but instead click on <b>Place all certificates in the following store</b> and select
+     the <b>Personal</b> certificate store:
+    <br>
+    <img src="certmgr6_certstore.png">
+    <br>
+    and click <b>Next</b>, review the information, then click <b>Finish</b>.
+  </li>
+  <li>If all went well the certificate has now been successfully imported:
+    <br>
+    <img src="certmgr7_succesful.png">
+    <br>
+    Click <b>OK</b> to return to the 'Certificate Manager console'.
+  </li>
+  <li>The 'Certificate Manager console' should now list the newly imported certificate:
+    <br>
+    <img src="certmgr8_afterwards.png">
+    <br>
+  </li>
+</ul>
+ 
+<h3>Creating the VPN connection</h3>
+
+<ul>
+  <li>Open the <b>Network Sharing Center</b> and click on <b>Set up a new connection or network</b>.
+  </li>
+  <li>Choose <b>Connect to a workplace</b>:
+    <br>
+    <img src="setup_vpn1.png">
+    <br>
+  </li>
+  <li>In the screen that now pops up, choose <b>No, create a new connection</b> 
+    if you have any existing networks (bluetooth, vpn), then click <b>Next</b>.
+  </li>
+  <li>Next, click on <b>Use my Internet connection (VPN)</b>:
+    <br>
+    <img src="setup_vpn2.png">
+    <br>
+  </li>
+  <li>Fill in the hostname of the PPTP server as the <tt>Internet address</tt> and choose a 
+     <tt>Destination name</tt> for the VPN connection.
+     <br>
+    Make sure the checkbox <b>Don't connect now</b> is ticked:
+    <br>
+    <img src="setup_vpn3.png">
+    <br>
+  </li>
+  <li>Skip the section on <tt>Username</tt> and <tt>Password</tt> for now.
+  </li>
+  <li>Click <b>Close</b> in the <tt>Connection is ready for use</tt> screen.
+  </li>
+  <li>Go back to the <b>Network Sharing Center</b> and click on <b>Change adapter settings</b>
+     from the list on the left.
+  </li>
+  <li>In the screen that now comes up, right-click on your newly created VPN connection entry
+      and select <b>Properties</b>, then go the tab <b>Security</b>:
+    <br>
+    <img src="vpn_properties.png">
+    <br>
+    In this screen:
+    <ul>
+      <li>Change the VPN type to <b>PPTP</b></li>
+      <li>Select <b>Require encryption (disconnect if server declines)</b></li>
+      <li>Click on <b>Use EAP</b>, then select <b>Microsoft: Smart Card or other certificate</b></li>
+      <li>Finally, click on the <b>Properties</b> button that is now enabled</li>
+    </ul>
+  <li>The EAP properties screen will now come up:
+    <br>
+    <img src="vpn_security_properties_all_certs.png" width="400">
+    <br>
+    In this screen:
+    <ul>
+      <li>Select <b>Use a certificate on this computer</b></li>
+      <li>Select <b>Use simple certificate selection</b></li>
+      <li>Select the <b>Validate server certificate</b> checkbox, as otherwise <b>NO</b> server
+        side certificate checks are performed: the validity and expiration date are only verified
+        if this checkbox is selected. 
+        <br>
+        <b><em>Warning</em></b> If you enable "Validate server certificate" on an <em>existing</em>
+        connection, then always reboot Windows afterwards. Read up on why 
+        <a href="doc_win_cert_verification.html">here</a>.
+        <br><br>
+      </li>
+      <li>You can deselect the <b>Connect to these servers</b> checkbox, unless you want to
+        ensure that you are connecting only to servers with a particular certificate name.
+        See the next screenshot for details.
+      </li>
+      <li>From the list of <b>Trusted Root Certification Authorities</b>, select all CA certificates
+        that you want to trust for this connection. Normally, you'd select only the CA certificate
+        that was used to sign the PPTP server certificate (<tt>PPTP CA</tt> in this example).
+      </li>
+    </ul>
+  </li>
+  <li><b>Optional</b>: Configure the EAP properties to specify a server name:
+    <br>
+    <img src="vpn_security_properties_specific_cert.png" width="400">
+    <br>
+    In this screen:
+    <ul>
+      <li>Select the <b>Validate server certificate</b> checkbox, as otherwise <b>NO</b> server
+        side certificate checks are performed: the validity and expiration date are only verified
+        if this checkbox is selected.
+        <br>
+        <b><em>Warning</em></b> If you enable "Validate server certificate" on an <em>existing</em>
+        connection, then always reboot Windows afterwards. Read up on why 
+        <a href="doc_win_cert_verification.html">here</a>.
+        <br><br>
+      </li>
+      <li>Select the <b>Connect to these servers</b> checkbox, then fill in the certificate name
+        (the <tt>/CN=</tt> part of the VPN server certificate). Wildcards are allowed, so if all
+        VPN servers have a certificate name starting with <tt>pptp</tt> then fill in <b>pptp*</b>.
+      </li>
+      <li>From the list of <b>Trusted Root Certification Authorities</b>, select all CA certificates
+        that you want to trust for this connection. Normally, you'd select only the CA certificate
+        that was used to sign the PPTP server certificate (<tt>PPTP CA</tt> in this example).
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Testing your VPN connection</h3>
+
+<ul>
+  <li>In the <b>Network Sharing Center</b>, double click on the VPN connection entry to launch it.
+    <br>A new dialog will come up to ask which certificate you want to use:
+    <br>
+    <img src="vpn_start_select_cert.png">
+    <br>
+    Click <b>OK</b> to select the currently selected certificate.
+  </li>
+  <li>If you see the following screen pop up:
+    <br>
+    <img src="vpn_start_warning.png">
+    <br>
+    then you can click <b>Connect</b> to continue, but check the
+    <a href="doc_troubleshooting.html">Troubleshooting and sample sessions</a> page to get rid of
+    this warning.
+  </li>
+  <li>The VPN connection will now be established.</li>
+  <li>If all went well you can check the properties of your VPN connection. It should provide
+     information similar to:
+    <br>
+    <img src="vpn_connection_properties.png">
+    <br>
+  </li>
+</ul>
+
+<br>You can/should also read the documentation
+<br>
+  <a href= "doc_pptp_clientsetup.html">How to run a Linux PPTP client with X.509 certificate support</a>
+<br>and<br>
+  <a href= "doc_pptp_serversetup.html">How to run a Linux PPTP server with X.509 certificate support</a>
+<br>
+
+</body>
+</html>
+

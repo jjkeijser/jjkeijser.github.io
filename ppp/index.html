@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <title>EAP-TLS patch for pppd</title>
+</head>
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left">Home</td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a></td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>About EAP-TLS</h2>
+
+<p>The Extensible Authentication Protocol (EAP; 
+<a href="https://tools.ietf.org/html/rfc3748">RFC 3748</a>) is a
+security protocol that can be used with PPP. It provides a means to
+plug in multiple optional authentication methods.<br></p>
+
+<p>Transport Level Security (TLS; TLSv1.3
+<a href="https://tools.ietf.org/html/rfc8446">RFC 8446</a> and TLSv1.2
+<a href="https://tools.ietf.org/html/rfc5246">RFC 5246</a>) provides for mutual
+authentication, integrity-protected ciphersuite negotiation and key
+exchange between two endpoints. It also provides for optional MPPE 
+encryption.</p>
+
+<p>EAP-TLS (<a href="https://tools.ietf.org/html/rfc5216">RFC 5216</a>
+obsoleting RFC2716) encapsulates the TLS messages in EAP packets,
+allowing TLS mutual authentication to be used as a generic EAP
+mechanism.</p>
+
+<h2>Why was it written?</h2>
+
+<p>This patch was written to use pppd in a VPN with either PPTP or IPSec/L2TP
+and to allow Windows users to authenticate using smartcards with certificates.</p>
+
+<p>Especially for PPTP VPNs the support of EAP-TLS+MPPE is very important, as 
+it allows for the use of X.509 certificates to authenticate users. This greatly
+improves security (one might say it actually <i>adds</i> a little security), as
+the security of the PPTP model is as good as the password/certificate length.
+</p>
+
+<h2>Latest release</h2>
+
+<p><b>Note</b><br>
+As of November 2020, this patch has been merged into the mainline pppd code at
+<a href="https://github.com/paulusmack/ppp">https://github.com/paulusmack/ppp</a>.
+<br>
+For existing releases of pppd up to version 2.4.8 this patch is still available:
+<br>
+<p>The latest version of this patch with experimental TLSv1.3 support is 
+<a href="ppp-2.4.8-eaptls-mppe-1.301.patch">v1.301</a>, released on 28-May-2020.
+<p>The latest version of this patch with TLSv1.2 support is 
+<a href="ppp-2.4.8-eaptls-mppe-1.202.patch">v1.202</a>, released on 28-May-2020.
+
+
+<h2>Features</h2>
+
+<ul>
+  <li>Allow EAP-TLS authentication in pppd</li>
+  <li>Both client and server mode supported</li>
+  <li>MPPE encryption support (mostly needed for PPTP VPNs)</li>
+  <li>CRL handling</li>
+  <li>Can be compiled against OpenSSL 1.0.0, 1.0.1+ and 1.1+</li>
+  <li>up to version 0.91: CRL automatic updating</li>
+  <li>new in version 0.95: OpenSSL engine support (tested only with a PKCS11 engine)</li>
+  <li>new in version 1.102: TLSv1.2 support (if OpenSSL library supports it)</li>
+  <li>new in version 1.300: experimental TLSv1.3 support (if OpenSSL library supports it)</li>
+</ul>
+
+<h2>Notes</h2>
+This patch was originally was developed by Beniamino Galvani in SPE laboratories with
+help from Paolo Prandini.
+<br>
+In 2006 I added MPPE encryption support to the patch and in May 2008 I took over the
+maintenance of the patch from Beniamino. Please do not bother him any longer
+with questions regarding the EAP-TLS patch.
+
+</body>
+</html>
+

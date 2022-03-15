@@ -1,0 +1,63 @@
+using channel 6
+Using interface ppp0
+Connect: ppp0 <--> /dev/pts/3
+sent [LCP ConfReq id=0x1 <mru 1450> <asyncmap 0x0> <magic 0xd7bae20e>]
+rcvd [LCP ConfReq id=0x1 <mru 1450> <asyncmap 0x0> <auth eap> <magic 0x77ab122>]
+sent [LCP ConfAck id=0x1 <mru 1450> <asyncmap 0x0> <auth eap> <magic 0x77ab122>]
+rcvd [LCP ConfAck id=0x1 <mru 1450> <asyncmap 0x0> <magic 0xd7bae20e>]
+rcvd [LCP EchoReq id=0x0 magic=0x77ab122]
+sent [LCP EchoRep id=0x0 magic=0xd7bae20e]
+rcvd [EAP Request id=0xb0 Identity <Message "Name">]
+EAP: Identity prompt "Name"
+sent [EAP Response id=0xb0 Identity <Name "Jan Just Keijser">]
+rcvd [EAP Request id=0xb1 TLS --S]
+Found OpenSSL engine 'pkcs11'
+Found engine identifier '39453945373335312d333545442d343031612d384637302d3238463636393036363042303a30'
+Locating OpenSSL config file
+Loading OpenSSL config file
+Loading OpenSSL built-ins
+Loading OpenSSL configured modules
+Enabling OpenSSL auto engines
+Loading OpenSSL 'pkcs11' engine support
+Initialising engine
+Loading private key '39453945373335312d333545442d343031612d384637302d3238463636393036363042303a30' from engine
+Got the private key, adding it to SSL context
+ -> Handshake: Client Hello
+sent [EAP Response id=0xb1 TLS --- ...]
+rcvd [EAP Request id=0xb2 TLS LM- ...]
+sent [EAP Response id=0xb2 TLS Ack]
+rcvd [EAP Request id=0xb3 TLS --- ...]
+ <- Handshake: Server Hello
+ <- Handshake: Certificate
+certificate verify depth: 1
+certificate verify depth: 0
+Certificate CN: kop.nikhef.nl , peer name kop.nikhef.nl
+ <- Handshake: Certificate Request
+ <- Handshake: Server Hello Done
+ -> Handshake: Certificate
+ -> Handshake: Client Key Exchange
+ -> Handshake: Certificate Verify
+ -> ChangeCipherSpec
+ -> Handshake: Finished
+sent [EAP Response id=0xb3 TLS LM- ...]
+rcvd [EAP Request id=0xb4 TLS Ack]
+sent [EAP Response id=0xb4 TLS --- ...]
+rcvd [EAP Request id=0xb5 TLS --- ...]
+ <- ChangeCipherSpec
+ <- Handshake: Finished
+sent [EAP Response id=0xb5 TLS Ack]
+rcvd [EAP Success id=0xb6]
+EAP authentication succeeded
+sent [CCP ConfReq id=0x1 <mppe +H -M +S -L -D -C>]
+rcvd [CCP ConfReq id=0x1 <mppe +H -M +S -L -D -C>]
+sent [CCP ConfAck id=0x1 <mppe +H -M +S -L -D -C>]
+rcvd [CCP ConfAck id=0x1 <mppe +H -M +S -L -D -C>]
+MPPE 128-bit stateless compression enabled
+sent [IPCP ConfReq id=0x1 <compress VJ 0f 01> <addr 0.0.0.0>]
+rcvd [IPCP ConfReq id=0x1 <compress VJ 0f 01> <addr 172.16.1.1>]
+sent [IPCP ConfAck id=0x1 <compress VJ 0f 01> <addr 172.16.1.1>]
+rcvd [IPCP ConfNak id=0x1 <addr 172.16.1.10>]
+sent [IPCP ConfReq id=0x2 <compress VJ 0f 01> <addr 172.16.1.10>]
+rcvd [IPCP ConfAck id=0x2 <compress VJ 0f 01> <addr 172.16.1.10>]
+local  IP address 172.16.1.10
+remote IP address 172.16.1.1

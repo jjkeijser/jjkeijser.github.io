@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Linux PKCS#11 setup</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>How to use a PKCS#11 device with a Linux PPTP client (smart card and hardware tokens).
+</h2>
+
+OpenSSL engine support is included starting with v0.95 of the ppp+EAP-TLS patch.
+Currently the only engine tested is the 'pkcs11' engine (hardware token support).
+<br>
+This tutorial will explain how to use a hardware token for your PPTP VPN certificate/private key
+pair.
+<br><br>
+Before setting up the <tt>pptp</tt> client first make sure that you have created your X.509
+certificates. A short tutorial on how to do that is given 
+<a href="doc_pki_setup.html">here</a>.
+
+<br><br>
+As explained in 
+<a href= "doc_pptp_clientsetup.html">How to run a Linux PPTP server with X.509 certificate support</a>,
+there are two methods for using pptp + ppp+EAP-TLS:
+<ol>
+  <li>Using command-line options to specify the public/private keypair and CA certificate</li>
+  <li>Using a file <tt>/etc/ppp/eaptls-client</tt> to specify the public/private keypair and CA certificate</li>
+</ol>
+
+For PKCS#11 support this is also true, but we will use command-line options here to specify that
+the certificate and private key should be retrieved from a hardware token using the PKCS#11 engine.
+<br>
+The procedure for using the <tt>/etc/ppp/eaptls-client</tt> file in combination with a hardware token
+is very similar. 
+<br><br>
+
+For this tutorial a SafeNet (formerly Aladdin) eToken PRO 72K was used, in combination with the 
+<tt>SafeNetAuthenticationClient 8.1</tt>. Other hardware tokens can also be used, as long as they 
+provide a fully functional PKCS#11 interface. A fully opensource PKCS#11 package is 
+<a href="https://github.com/OpenSC/OpenSC/wiki">OpenSC</a>. Unfortunately, the eToken PRO 72K is not 
+supported, hence we have to resort to the SafeNet driver.
+
+
+<ul>
+  <li><b>Make sure your hardware token is functioning on Linux</b>
+  <br>
+  This is actually the tricky part in most cases. There are not that many hardware tokens
+  or smart cards available that work <em>out of the box</em> on Linux, and configuring the
+  driver and tools to use a hardware token can be difficult.
+  <br>
+  Install the <tt>pcscd</tt>, <tt>engine_pkcs11</tt> and <tt>opensc</tt> packages, as they contain 
+  necessary base utilities and tools. We will especially need the <tt>pkcs11-tool</tt> command from 
+  the <tt>opensc</tt> package to store the certificate and private key on the hardware token.
+  </li>
+  <br>
+  <li><b>Copy the certificate and private key to the hardware token</b>
+  <br>
+  Convert the certificate and private key files to DER format and copy them to the token:
+<pre>
+  $ cd /etc/ppp/keys
+  $ openssl x509 -in pptp-client.crt -outform der -out pptp-client-cert.der
+  $ pkcs11-tool --module /usr/lib64/libeTPkcs11.so --login --id 12345678 --type cert --w pptp-client-cert.der
+
+  $ openssl rsa -in pptp-client.key -outform der -out pptp-client-key.der
+  $ pkcs11-tool --module /usr/lib64/libeTPkcs11.so --login --id 12345678 --type privkey --w pptp-client-key.der
+</pre>
+  You can use the command
+<pre>
+  $ pkcs11-tool --module /usr/lib64/libeTPkcs11.so --login -O
+</pre>
+  to verify that the certificate and private key have been copied to the token. Afterwards you can and should
+  delete the .der files.
+  </li>
+  <br>
+  <li><b>Set up the <tt>/etc/ppp/openssl.cnf</tt> file</b>
+  <br>
+  In order to use the <tt>engine_pkcs11</tt> module with the patched <tt>pppd</tt> command a special
+  <tt>/etc/ppp/openssl.cnf</tt> file is needed. The path to this file is hardcoded into the <tt>pppd</tt>
+  binary for security reasons.
+  <br><br>
+  Create an <tt>/etc/ppp/openssl.cnf</tt> file as follows:
+<pre>
+  openssl_conf = openssl_def
+  
+  [ openssl_def ]
+  engines = engine_section
+  
+  [ engine_section ]
+  pkcs11 = pkcs11_section
+  
+  [ pkcs11_section ]
+  engine_id = pkcs11
+  dynamic_path = /usr/lib64/openssl/engines/engine_pkcs11.so
+  MODULE_PATH = /usr/lib64/libeTPkcs11.so
+  init = 0
+</pre>
+  (for 32 bit systems adjust <tt>lib64</tt> to <tt>lib</tt>).
+  <br>
+  It is also possible to hardcode the hardware token password (aka 'PIN') in this file using the 
+  option:
+<pre>
+  PIN = XXXXXXX
+</pre>
+  <b>NOTE:</b> all keywords in the <tt>openssl.cnf</tt> file are case-sensitive!
+  </li>
+  <br>
+  <li><b>Specify the hardware token using command-line options</b>
+  <br>
+  To connect to a <tt>pptpd</tt> server named '<tt>pptp.example.com</tt>' using the certificate
+  and private key found on the hardware token in slot 0 with ID=12345678 you can use
+<pre>
+  ./pppd file options-pptp-eaptls \
+         cert pkcs11:0:12345678 \
+         key  pkcs11:0:12345678 \
+         ca   /etc/ppp/keys/ca.crt \
+         pty  "pptp pttp.example.com --nolaunchpppd" 
+</pre>
+  The command will return immediately to the shell prompt.
+  <br>
+  Check the contents of the <tt>/tmp/pppd.log</tt> file to see the actual connection progress.
+  <br>
+  If all went well the bottom part of the <tt>/tmp/pppd.log</tt> file should list something like
+<pre>
+  local  IP address 172.16.1.10
+  remote IP address 172.16.1.1
+  Script /etc/ppp/ip-up started (pid 29711)
+  Script /etc/ppp/ip-up finished (pid 29711), status = 0x0
+</pre>
+  <b>NOTES:</b>
+    <ul>
+      <li>the format of the <tt>pkcs11</tt> identifier is
+<pre>
+  pkcs11:$SLOT_NUMBER:$IDENTIFIER
+</pre>
+       but the <tt>engine_pkcs11</tt> module also supports formats such as <tt>slot_N_label_XXXX</tt>.
+       <br>
+       The <tt>pkcs11:</tt> part is needed to tell the <tt>pppd</tt> daemon to look for the 
+       certificate or private key on a PKCS#11 device instead of on disk.
+       </li>
+       <li>it is not required to store the certificate on the hardware token, nor to use the 
+       exact same ID or label for the certificate as for the private key. It is very hard, however,
+       to find a matching certificate and private key pair on a hardware token if you forget which
+       certificate belongs to which private key.
+       </li>
+       <li>when specifying a pathname for the (CA) certificate or private key, always use a full
+       path, e.g.
+<pre>
+  ca /etc/ppp/keys/ca.crt
+</pre>
+       Using a path <tt>ca keys/ca.crt</tt> will most likely not work.
+       </li>
+    </ul>
+  </li>
+  <br>
+  <li><b>Checking the <tt>pppd.log</tt> connection log</b>
+  <br>
+  A successful connection log file of a PPTP client with the certificate and private key 
+  stored on a hardware token can be found <a href="pppd.log">here</a>.
+  <br>
+  The most interesting parts are:
+<pre>
+  Found OpenSSL engine 'pkcs11'
+  Found engine identifier '39453945373335312d333545442d343031612d384637302d3238463636393036363042303a30'
+  Locating OpenSSL config file
+  Loading OpenSSL config file
+  Loading OpenSSL built-ins
+  Loading OpenSSL configured modules
+  Enabling OpenSSL auto engines
+  Loading OpenSSL 'pkcs11' engine support
+  Initialising engine
+  Loading private key '39453945373335312d333545442d343031612d384637302d3238463636393036363042303a30' from engine
+  Got the private key, adding it to SSL context
+</pre>
+  and yes, in this case the ID of the certificate on the token was indeed
+  <tt>39453945373335312d333545442d343031612d384637302d3238463636393036363042303a30</tt> :)
+  </li>
+</ul>
+
+
+<br>You can/should also read the documentation
+<br>
+  <a href= "doc_pptp_clientsetup.html">How to run a Linux PPTP server with X.509 certificate support</a>
+<br>
+
+</body>
+</html>
+

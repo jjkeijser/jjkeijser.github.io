@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Setting up a PKI</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>Setting up a PKI using easy-rsa</h2>
+
+In order to effectively use X.509 certificates we will need to set up a 
+Public Key Infrastructure (PKI) first. 
+<br>
+If you already have certificates available or if you want to use a different
+certificate creation or enrollment mechanism then you can skip this part.
+<br><br>
+In this example we use the open-source
+<tt>easy-rsa</tt> scripts to set up a very simple PKI. The <tt>easy-rsa</tt>
+scripts were originally part of the OpenVPN package but nowadays they can be
+downloaded as a standalone package for most Linux distro's. If you cannot
+find the standalone package then copy the files out of the OpenVPN package 
+(or tarball).
+<br>
+Note that the <tt>easy-rsa</tt> scripts are bash scripts, so in order to use
+them you will need to start a bash or ksh shell first.
+
+<ul>
+  <li>First, copy the files from the <tt>easy-rsa</tt> package to your
+      working directory
+<pre>
+  $ mkdir ~/pptp
+  $ cd ~/pptp
+  $ cp -a /usr/share/easy-rsa/2.0/* .
+</pre>
+  </li>
+  <li>Next, modify the <tt>vars</tt> file to suite your setup. For this tutorial
+      I use 
+<pre>
+  export EASY_RSA="`pwd`"
+  export OPENSSL="openssl"
+  export PKCS11TOOL="pkcs11-tool"
+  export GREP="grep"
+  export KEY_CONFIG=`$EASY_RSA/whichopensslcnf $EASY_RSA`
+  export KEY_DIR="$EASY_RSA/keys"
+  echo NOTE: If you run ./clean-all, I will be doing a rm -rf on $KEY_DIR
+  export PKCS11_MODULE_PATH="dummy"
+  export PKCS11_PIN="dummy"
+  export KEY_SIZE=2048
+  export CA_EXPIRE=3650
+  export KEY_EXPIRE=3650
+  export KEY_COUNTRY="NL"
+  export KEY_PROVINCE="NH"
+  export KEY_CITY="Amsterdam"
+  export KEY_ORG="Nikhef"
+  export KEY_EMAIL=""
+  export KEY_OU="CT"
+  export KEY_NAME="PPTP"
+</pre>
+  </li>
+  <li>Load the environment variables and initialize the environment
+<pre>
+  $ . ./vars
+  NOTE: If you run ./clean-all, I will be doing a rm -rf on /home/janjust/pptp/keys
+  $ ./clean-all
+</pre>
+  <b>NOTE</b> even for a new directory the second step is required, as it sets up
+  some configuration files for OpenSSL.
+  </li>
+  <li>Next, build the CA certificate for your PKI:
+<pre>
+  $ ./build-ca 
+  Generating a 2048 bit RSA private key
+  ............................................................................+++
+  ....................................................................................................+++
+  writing new private key to 'ca.key'
+  -----
+  You are about to be asked to enter information that will be incorporated
+  into your certificate request.
+  What you are about to enter is what is called a Distinguished Name or a DN.
+  There are quite a few fields but you can leave some blank
+  For some fields there will be a default value,
+  If you enter '.', the field will be left blank.
+  -----
+  Country Name (2 letter code) [NL]:
+  State or Province Name (full name) [NH]:
+  Locality Name (eg, city) [Amsterdam]:
+  Organization Name (eg, company) [Nikhef]:
+  Organizational Unit Name (eg, section) [CT]:
+  Common Name (eg, your name or your server's hostname) [Nikhef CA]:PPTP CA
+  Name []:
+  Email Address []:
+</pre>
+  </li>
+  <li>Generate the PPTP server certificate:
+<pre>
+  $ ./build-key-server --batch pptp-server
+  Generating a 2048 bit RSA private key
+  ............................................................+++
+  ........+++
+  writing new private key to 'pptp-server.key'
+  -----
+  Using configuration from /home/janjust/pptp/openssl-1.0.0.cnf
+  Check that the request matches the signature
+  Signature ok
+  The Subject's Distinguished Name is as follows
+  countryName           :PRINTABLE:'NL'
+  stateOrProvinceName   :PRINTABLE:'NH'
+  localityName          :PRINTABLE:'Amsterdam'
+  organizationName      :PRINTABLE:'Nikhef'
+  organizationalUnitName:PRINTABLE:'CT'
+  commonName            :PRINTABLE:'pptp-server'
+  Certificate is to be certified until Jun 13 10:16:12 2024 GMT (3650 days)
+  
+  Write out database with 1 new entries
+</pre>
+  <b>NOTES</b>
+  <ul>
+    <li>no password was specified for this server certificate/private
+        keypair. It is possible to use a password protected private key for your
+        pptp + ppp + EAP-TLS server but you will need to specify the password in the
+       <tt>options-pptpd-eaptls</tt> file in plaintext.
+    </li>
+    <li>the certificate that is generated has an <em>X.509V3 Extended Key Usage</em> property set to
+<pre>
+  X509v3 Extended Key Usage: 
+    TLS Web Server Authentication
+</pre>
+    </li>
+  </ul>
+  </li>
+  <li>Generate a client certificate with a password (aka passphrase):
+<pre>
+  $ ./build-key-pass --batch pptp-client
+  Generating a 2048 bit RSA private key
+  ...............+++
+  .....................................+++
+  writing new private key to 'pptp-client.key'
+  Enter PEM pass phrase: <b>XXXXX</b>
+  Verifying - Enter PEM pass phrase: <b>XXXXX</b>
+  -----
+  Using configuration from /home/janjust/pptp/openssl-1.0.0.cnf
+  Check that the request matches the signature
+  Signature ok
+  The Subject's Distinguished Name is as follows
+  countryName           :PRINTABLE:'NL'
+  stateOrProvinceName   :PRINTABLE:'NH'
+  localityName          :PRINTABLE:'Amsterdam'
+  organizationName      :PRINTABLE:'Nikhef'
+  organizationalUnitName:PRINTABLE:'CT'
+  commonName            :PRINTABLE:'pptp-client'
+  Certificate is to be certified until Jun 13 10:25:43 2024 GMT (3650 days)
+
+  Write out database with 1 new entries
+  Data Base Updated
+</pre>
+  <b>NOTE</b>
+  <ul>
+    <li>the certificate that is generated has an <em>X.509V3 Extended Key Usage</em> property set to
+<pre>
+  X509v3 Extended Key Usage: 
+    TLS Web Client Authentication
+</pre>
+      Most PPTP servers do not require this property, but older version of Microsoft Windows refused
+      to use X.509 certificates for PPTP connections that did <b>not</b> have this property set.
+    </li>
+  </ul>
+  <br>
+  </li>
+  <li>You can also generate a PKCS12 based keypair file, which is handier
+  when dealing with Windows clients:
+<pre>
+  $ ./build-key-pkcs12 --batch pptp-winclient
+  Generating a 2048 bit RSA private key
+  ....+++
+  ..................................................................+++
+  writing new private key to 'pptp-winclient.key'
+  -----
+  Using configuration from /home/janjust/pptp/openssl-1.0.0.cnf
+  Check that the request matches the signature
+  Signature ok
+  The Subject's Distinguished Name is as follows
+  countryName           :PRINTABLE:'NL'
+  stateOrProvinceName   :PRINTABLE:'NH'
+  localityName          :PRINTABLE:'Amsterdam'
+  organizationName      :PRINTABLE:'Nikhef'
+  organizationalUnitName:PRINTABLE:'CT'
+  commonName            :PRINTABLE:'pptp-winclient'
+  Certificate is to be certified until Jun 13 10:30:14 2024 GMT (3650 days)
+  
+  Write out database with 1 new entries
+  Data Base Updated
+  Enter Export Password: <b>XXXXX</b>
+  Verifying - Enter Export Password: <b>XXXXX</b>
+</pre>
+</ul>
+
+<h2>Where are the files?</h2>
+
+The files are all written out to <tt>~/pptp/keys</tt>, so the CA certificate,
+server and client certificate and key files can be found here:
+<pre>
+  ~/pptp/keys/ca.crt
+  ~/pptp/keys/pptp-server.crt
+  ~/pptp/keys/pptp-server.key
+  ~/pptp/keys/pptp-client.crt
+  ~/pptp/keys/pptp-client.key
+  ~/pptp/keys/pptp-winclient.p12
+</pre>
+
+You are now ready to use your newly created PKI for 
+<br>
+  <a href= "doc_pptp_serversetup.html">Setting up a Linux PPTP server with X.509 certificate support</a>
+<br>and<br>
+  <a href= "doc_pptp_clientsetup.html">Setting up a Linux PPTP client with X.509 certificate support</a>
+<br>
+
+</body>
+</html>
+

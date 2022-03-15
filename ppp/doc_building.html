@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Building PPP</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>Building PPP with the EAP-TLS patch</h2>
+
+First download ppp sources from the
+<a href= "http://www.samba.org/ppp">ppp website</a> 
+and then grab the EAP-TLS patch from the <a href="download.html">download page</a>.
+<br>
+
+Unpack the tarball and then apply the patch.
+<pre>
+  $ tar -xzf ppp-2.4.6.tar.gz
+  $ cd ppp-2.4.6
+  $ patch -p1 &lt; ../ppp-2.4.6-eaptls-mppe-0.996.patch
+  patching file README.eap-tls
+  patching file etc.ppp/eaptls-client
+  patching file etc.ppp/eaptls-server
+  patching file linux/Makefile.top
+  patching file pppd/Makefile.linux
+  patching file pppd/auth.c
+  patching file pppd/ccp.c
+  patching file pppd/chap-md5.c
+  patching file pppd/eap-tls.c
+  patching file pppd/eap-tls.h
+  patching file pppd/eap.c
+  patching file pppd/eap.h
+  patching file pppd/main.c
+  patching file pppd/md5.c
+  patching file pppd/md5.h
+  patching file pppd/options.c
+  patching file pppd/pathnames.h
+  patching file pppd/pppd.h
+  $
+</pre>
+
+Before continuing, read the README.eap-tls file for detailed
+information about building and configuring.<br>
+Then compile the program and install it.
+
+<pre>
+  $ ./configure
+  $ make
+  $ make install
+  $ make install-etcppp
+</pre>
+
+Finally, modify EAP-TLS configuration files (/etc/ppp/eaptls-server and
+/etc/ppp/eaptls-client) to suit your needs.
+<br>Read the documentation
+<br>
+  <a href= "doc_pptp_serversetup.html">How to run a Linux PPTP server with X.509 certificate support</a>
+<br>and<br>
+  <a href= "doc_pptp_clientsetup.html">How to run a Linux PPTP client with X.509 certificate support</a>
+<br>
+for more details on how to configure your freshly built ppp+EAP-TLS package.
+
+</body>
+</html>
+

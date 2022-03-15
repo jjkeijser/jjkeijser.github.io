@@ -1,0 +1,211 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Linux PPTP Client setup</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>How to run a Linux PPTP client with X.509 certificate support
+</h2>
+
+Before setting up the <tt>pptp</tt> client first make sure that you have created your X.509
+certificates. A short tutorial on how to do this is given 
+<a href="doc_pki_setup.html">here</a>.
+
+<br><br>
+There are two methods for using pptp + ppp+EAP-TLS:
+<ol>
+  <li>Using command-line options to specify the public/private keypair and CA certificate</li>
+  <li>Using a file <tt>/etc/ppp/eaptls-client</tt> to specify the public/private keypair and CA certificate</li>
+</ol>
+
+Both methods are described below:
+
+<ul>
+  <li><b>Install the pptp package</b>
+  <br>
+  In most Linux distro's the <tt>pptp</tt> package is part of the operating system and
+  can be installed using your favourite package manager, e.g.
+<pre>
+    # yum install pptp
+</pre>
+  </li>
+  <br>
+  <li><b>Install the patched pppd binary</b>
+  <br>
+  Several Linux distro's now include the ppp + EAP-TLS binary out of the box, hence it
+  can be installed using a package manager. If this is not the case for your distro then
+  you can install the <tt>pppd</tt> binary manually:
+<pre>
+  # cd ..../pppd-2.4.6-eaptls/pppd
+  # cp pppd /usr/local/sbin
+</pre>
+  </li>
+  <br>
+  <li><b>Set up the <tt>/etc/ppp/options-pptp-eaptls</tt> file</b>
+  <br>
+  This step is not strictly necessary: all options for running <tt>pppd</tt> can be specified
+  on the command-line, but it is often handy to store the 'static' set of options in a separate
+  file.
+  <br>
+  We use the following set of options, which partially mirror the options set in the server-side
+  <tt>/etc/ppp/options-pptpd-eaptls</tt> file (notice the use of <tt>pptp</tt> vs <tt>pptpd</tt>):
+<pre>
+  name pptp-client          ## The /CN= part of the client certificate
+  remotename pptp-server    ## The /CN= part of the server certificate
+  
+  noauth 
+  ipcp-accept-local 
+  ipcp-accept-remote 
+  noipdefault
+  nodeflate 
+  nobsdcomp
+  nopredictor1
+  nopcomp
+  noaccomp
+  
+  refuse-pap
+  refuse-chap
+  refuse-mschap
+  
+  require-mppe-128
+  # need-peer-eap     ## this ensures the server MUST authenticate us using EAP
+  
+  password MyPassword ## if the private key is protected using a passphrase
+                      ## you can specify the passphrase here.
+  debug
+  logfile /tmp/pppd.log
+</pre>
+
+  <b>NOTE</b>: the option <tt>require-eap</tt> should not be present in the client-side configuration.
+  <br>
+  This option 'triggers' the <tt>pppd</tt> code to go into 'server mode' and it will start looking for
+  an <tt>/etc/ppp/eaptls-server</tt> file.
+  <br>
+  <br>
+  <b>NOTE</b>: If you want to test the new TLSv1.3 handshake protocol, then make sure you have compiled 
+  and linked the pppd-eap-tls code against an OpenSSL version that supports TLSv1.3 and add an extra line
+<pre>
+  max-tls-version 1.3
+</pre>
+  to both client and server configurations.
+  <br>
+  </li>
+  <li><b>Method #1: using command-line options</b>
+  <br>
+  Most, if not all options that are specified in the <tt>options-pptp-eaptls</tt> file can also be
+  specified on the command-line.
+  <br>
+  To connect to a <tt>pptpd</tt> server named '<tt>pptp.example.com</tt>' you can use
+<pre>
+  ./pppd file options-pptp-eaptls \
+         cert /etc/ppp/keys/pptp-client.crt  \
+         key  /etc/ppp/keys/pptp-client.key  \
+         ca   /etc/ppp/keys/ca.crt \
+         pty  "pptp pttp.example.com --nolaunchpppd" 
+</pre>
+  The command will return immediately to the shell prompt.
+  <br>
+  Check the contents of the <tt>/tmp/pppd.log</tt> file to see the actual connection progress.
+  <br>
+  If all went well the bottom part of the <tt>/tmp/pppd.log</tt> file should list something like
+<pre>
+  local  IP address 172.16.1.10
+  remote IP address 172.16.1.1
+  Script /etc/ppp/ip-up started (pid 29711)
+  Script /etc/ppp/ip-up finished (pid 29711), status = 0x0
+</pre>
+  </li>
+  <br>
+  <li><b>Method #2: using an <tt>/etc/ppp/eaptls-client</tt> file</b>
+  <br>
+  Instead of specifying the certificates and private key on the command-line they can also be 
+  specified in the </tt>/etc/ppp/eaptls-client</tt> file.
+  <br>The format of this file is very similar to the server side <tt>/etc/ppp/eaptls-server</tt> file:
+    <ul>
+      <li><em>Client name</em>:
+      the name used by the client for authentication, can be *
+      </li>
+      <li><em>Server name</em>:
+      the name of the server, can be *
+      </li>
+      <li><em>Client certificate file</em>:
+      the file containing the certificate chain for the client in PEM format.
+      </li>
+      <li><em>Server certificate file</em>:
+      if you want to specify the certificate that the server is required to use,
+      put the certificate file name, else put a dash '-'.
+      </li>
+      <li><em>CA certificate file</em>:
+      the file containing the trusted CA certificates in PEM format.
+      </li>
+      <li><em>Client private key file</em>:
+      the file containing the client private key in PEM format.
+      </li>
+    </ul>
+  For this example the following file was used:
+<pre>
+  *  pptp-server  /etc/ppp/keys/pptp-client.crt  -  /etc/ppp/keys/ca.crt  /etc/ppp/keys/pptp-client.key
+</pre>
+  Again, to connect to a <tt>pptpd</tt> server named '<tt>pptp.example.com</tt>' you can use
+<pre>
+  ./pppd file options-pptp-eaptls pty "pptp pttp.example.com --nolaunchpppd" 
+</pre>
+  The command will return immediately to the shell prompt.
+  <br>
+  Check the contents of the <tt>/tmp/pppd.log</tt> file to see the actual connection progress.
+  <br>
+  If all went well the bottom part of the <tt>/tmp/pppd.log</tt> file should list something like
+<pre>
+  local  IP address 172.16.1.10
+  remote IP address 172.16.1.1
+  Script /etc/ppp/ip-up started (pid 29711)
+  Script /etc/ppp/ip-up finished (pid 29711), status = 0x0
+</pre>
+  </li>
+  <br>
+  <li><b>Bootnote: using **only** command-line options</b>
+  <br>
+  For debugging purposes it is often useful to not use an <tt>options-pptp-eaptls</tt> file at all,
+  but to specify everything on the command-line:
+<pre>
+  ./pppd  noauth refuse-pap refuse-chap refuse-mschap ipcp-accept-local ipcp-accept-remote \
+          noipdefault nodeflate nobsdcomp nopredictor1 nopcomp noaccomp \
+          cert /etc/ppp/keys/pptp-client.crt key /etc/ppp/keys/pptp-client.key ca /etc/ppp/keys/ca.crt \
+          name pptp-client remotename pptp-server debug logfile /tmp/pppd.log \
+          pty "pptp pptp.example.com --nolaunchpppd" passive require-mppe-128 need-peer-eap
+</pre>
+  As you can see the order of the command-line parameters is not fixed.
+  </li>
+</ul>
+
+<br>You can/should also read the documentation
+<br>
+  <a href= "doc_pptp_serversetup.html">How to run a Linux PPTP server with X.509 certificate support</a>
+<br>and<br>
+  <a href= "doc_pptp_winclientsetup.html">Connecting a Windows client to a PPTP server using X.509 certificates</a>
+<br>
+
+</body>
+</html>
+

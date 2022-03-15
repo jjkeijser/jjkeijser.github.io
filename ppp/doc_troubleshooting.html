@@ -1,0 +1,321 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="keywords" content="ppp eap tls eap-tls pppd openssl">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>EAP-TLS patch for pppd: Documentation</title>
+
+  <link rel="stylesheet" href="mw-monobook-lookalike.css">
+</head>
+
+
+<body>
+
+<h1>EAP-TLS patch for pppd</h1>
+
+<table width="750" summary="">
+  <tr>
+    <td width="10%">
+    <td width="20%" align="left"><a href="index.html">Home</a></td>
+    <td width="20%" align="left"><a href= "download.html">Download</a></td>
+    <td width="50%" align="left"><a href= "documentation.html">Documentation</a>: Troubleshooting</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>Troubleshooting and sample sessions
+</h2>
+
+Even with all the correct configuration files it can be sometimes hard to get a PPTP connection to work. 
+In this section we will list some troubleshooting tips and the logs of two sample sessions. That way, a user
+can compare the results to a "known-to-work" setup.
+
+<h3>Troubleshooting: warning screen when establishing a connection
+</h3>
+
+If you see the following screen
+<br>
+<img src="vpn_start_warning.png">
+<br>
+each time you start a VPN connection, then there is a mismatch between the server specified in the 
+EAP properties screen and the actual PPTP server name. Check with your PPTP VPN provider or admin 
+to find out the proper name of the PPTP VPN server. Alternatively, you may be able to find the right
+server name by clicking on the <b>Details</b> drop-down button in the screen above.
+
+<br><br>
+Alternatively, you can disable all server checks to see if the problem then goes away by deselecting 
+the <b>Validate server certificate</b> checkbox as shown here:
+<br>
+<img src="vpn_security_properties.png">
+<br>
+However, this is not (no longer) recommended as it causes the VPN client to disable <b>ALL</b> 
+server certificate security checks, including the proper CA signing and validity of the server 
+certificate itself.
+<br><br>
+See <a href="doc_win_cert_verification.html">Windows Certificate Verification</a> for more details on
+disabling and enabling this option.
+
+<h3>Troubleshooting: hanging at "Checking username"
+</h3>
+
+If you see the following screen
+<br>
+<img src="vpn_hang_at_verifying_username.png" width="400">
+<br>
+forever and the VPN connection is not established, then the server certificate did not pass 
+the client-side validation. This usually means that the VPN server certificate has expired or 
+is not yet valid.
+<br><br>
+Unfortunately, the Microsoft VPN client (in all Windows versions up to at least Windows 10 v1809) does
+not <b>abort</b> the connection when this happens, as it should when conforming to RFC 2716 (page 11/12).
+The client just sites there idly, continually sending a garbage message to the server. This garbage 
+message causes the server to not abort the connection either, causing an endless loop.
+<br><br>
+In order to fix this, either deselect the <b>Validate server certificate</b> checkbox (see above),
+or even better, get your VPN server administrator to check the validity of the server certificate.
+
+<br><br>
+<b>Note</b>: This issue has been reported to Microsoft as <tt>MSRC Case 48337</tt> but they do 
+not consider this a bug or a security issue and hence refuse to fix it.
+
+
+<h3>Troubleshooting: IP level fragmentation with EAP-TLS
+</h3>
+<i>(provided by Charles Brady)</i>
+<br><br>
+The symptom was that Windows 7 clients were getting into a loop during EAP-TLS negotiation, and 
+connections were failing. 
+<br>
+The server-side ppp.log file showed the following:
+<pre>
+  Mar 31 10:24:45 e-mas pppd[30497]: rcvd [EAP Response id=0x82 TLS L-- ...]
+  Mar 31 10:24:45 e-mas pppd[30497]:  &lt;- Handshake: Client Hello
+  Mar 31 10:24:45 e-mas pppd[30497]:  -&gt; Handshake: Server Hello
+  Mar 31 10:24:45 e-mas pppd[30497]:  -&gt; Handshake: Certificate
+  Mar 31 10:24:45 e-mas pppd[30497]:  -&gt; Handshake: Certificate Request
+  Mar 31 10:24:45 e-mas pppd[30497]: sent [EAP Request id=0x83 TLS LM- ...]
+  Mar 31 10:24:45 e-mas pptpd[30496]: GRE: accepting packet #9
+  Mar 31 10:24:45 e-mas pppd[30497]: rcvd [EAP Response id=0x83 TLS Ack]
+  Mar 31 10:24:45 e-mas pppd[30497]: sent [EAP Request id=0x84 TLS --- ...]
+  Mar 31 10:25:00 e-mas pppd[30497]: last message repeated 4 times
+  Mar 31 10:25:00 e-mas pppd[30497]: sent [LCP EchoReq id=0x1 magic=0xa55eb200]
+  Mar 31 10:25:00 e-mas pptpd[30496]: GRE: buffering packet #15 (expecting #10, lost or reordered)
+  Mar 31 10:25:00 e-mas pppd[30497]: sent [EAP Request id=0x84 TLS --- ...]
+  Mar 31 10:25:15 e-mas pppd[30497]: last message repeated 4 times
+  Mar 31 10:25:15 e-mas pppd[30497]: sent [LCP EchoReq id=0x2 magic=0xa55eb200]
+  Mar 31 10:25:15 e-mas pptpd[30496]: GRE: timeout waiting for 5 packets
+  Mar 31 10:25:15 e-mas pptpd[30496]: GRE: accepting #15 from queue
+  Mar 31 10:25:15 e-mas pptpd[30496]: GRE: buffering packet #21 (expecting #16, lost or reordered)
+  Mar 31 10:25:15 e-mas pppd[30497]: rcvd [LCP EchoRep id=0x1 magic=0x6c0f09ff]
+  Mar 31 10:25:15 e-mas pppd[30497]: sent [EAP Request id=0x84 TLS --- ...]
+  Mar 31 10:25:30 e-mas pppd[30497]: last message repeated 4 times 
+</pre>
+
+This issue was finally tracked down to inappropriate EAP-TLS fragmentation.
+The EAP Request "Length" was 1847 bytes. The client broke that into fragment one of 1498 bytes, 
+which was fragmented at the IP layer. The server did not receive both fragments due to
+(other) networking issues, resulting in the failing connections.
+
+<h4>Resolution
+</h4>
+Add a parameter to the server side PPP config
+<pre>
+  mru 1350
+</pre>
+to fix the EAP-TLS fragmentation. 
+
+<h3>Sample setup: Linux client and Linux server
+</h3>
+
+In this example, the server was set up following the documentation page 
+<a href= "doc_pptp_serversetup.html">How to run a Linux PPTP server with X.509 certificate support</a>.
+<br>
+Similarly, the client was set up following the documentation page
+<a href= "doc_pptp_clientsetup.html">How to run a Linux PPTP client with X.509 certificate support</a>.
+<br><br>
+The server was started by launching the PPTP daemon, which in turn launches a PPP process for every connecting 
+client:
+<pre>
+    # systemctl start pptpd
+</pre>
+
+The client was launched using
+<pre>
+  pppd file /etc/ppp/options-pptp-eaptls
+       cert /etc/ppp/keys/pptp-client.crt
+       key  /etc/ppp/keys/pptp-client.key
+       ca   /etc/ppp/keys/ca.crt
+       pty  "pptp pptp-server.example.org --nolaunchpppd"
+</pre>
+
+After the connection was established, the server VPN IP address was pinged from the client using
+<pre>
+    # ping 172.16.1.1
+</pre>
+
+With all debug options set, the server <code>/tmp/ppp.log</code> log file shows the following output:
+<h4>Server ppp.log
+</h4>
+<pre>
+  using channel 20
+  Using interface ppp0
+  Connect: ppp0 <--> /dev/pts/2
+  sent [LCP ConfReq id=0x1 <mru 1450> <asyncmap 0x0> <auth eap> <magic 0xb172e99d>]
+  rcvd [LCP ConfReq id=0x1 <asyncmap 0x0> <magic 0x7ef7d078>]
+  sent [LCP ConfAck id=0x1 <asyncmap 0x0> <magic 0x7ef7d078>]
+  rcvd [LCP ConfAck id=0x1 <mru 1450> <asyncmap 0x0> <auth eap> <magic 0xb172e99d>]
+  sent [EAP Request id=0xae Identity <Message "Name">]
+  rcvd [EAP Response id=0xae Identity <Name "pptp-client">]
+  EAP: unauthenticated peer name "pptp-client"
+  getting eaptls secret
+  MTU = 1436
+  sent [EAP Request id=0xaf TLS --S]
+  rcvd [EAP Response id=0xaf TLS --- ...]
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- Handshake: Client Hello
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Server Hello
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Certificate
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Server Key Exchange
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Certificate Request
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Server Hello Done
+  sent [EAP Request id=0xb0 TLS LM- ...]
+  rcvd [EAP Response id=0xb0 TLS Ack]
+  sent [EAP Request id=0xb1 TLS --- ...]
+  rcvd [EAP Response id=0xb1 TLS LM- ...]
+  sent [EAP Request id=0xb2 TLS Ack]
+  rcvd [EAP Response id=0xb2 TLS --- ...]
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- Handshake: Certificate
+  certificate verify depth: 1
+  certificate verify depth: 0
+  Certificate CN: pptp-client , peer name pptp-client
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- Handshake: Client Key Exchange
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- Handshake: Certificate Verify
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- SSL/TLS Header: TLS 1.0
+   &lt;- Handshake: Finished
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; ChangeCipherSpec
+   -&gt; SSL/TLS Header: TLS 1.0
+   -&gt; Handshake: Finished
+  sent [EAP Request id=0xb3 TLS --- ...]
+  rcvd [EAP Response id=0xb3 TLS Ack]
+  sent [EAP Success id=0xb4]
+  peer from calling number 194.171.96.60 authorized
+  sent [CCP ConfReq id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  rcvd [CCP ConfReq id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  sent [CCP ConfAck id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  rcvd [CCP ConfAck id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  MPPE 128-bit stateless compression enabled
+  sent [IPCP ConfReq id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.1&gt;]
+  rcvd [IPCP ConfReq id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 0.0.0.0&gt;]
+  sent [IPCP ConfNak id=0x1 &lt;addr 172.16.1.10&gt;]
+  rcvd [IPCP ConfAck id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.1&gt;]
+  rcvd [IPCP ConfReq id=0x2 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.10&gt;]
+  sent [IPCP ConfAck id=0x2 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.10&gt;]
+  local  IP address 172.16.1.1
+  remote IP address 172.16.1.10
+  Script /etc/ppp/ip-up started (pid 6168)
+  Script /etc/ppp/ip-up finished (pid 6168), status = 0x0
+  Modem hangup
+  Connect time 5.3 minutes.
+  Sent 168 bytes, received 168 bytes.
+  Script /etc/ppp/ip-down started (pid 6214)
+  MPPE disabled
+  sent [LCP TermReq id=0x2 "MPPE disabled"]
+  Connection terminated.
+</pre>
+
+<b>Note</b>
+<br>
+The <code>ppp</code> binary on the server was built and linked against OpenSSL 1.1. With OpenSSL 1.1,
+an extra line is added in the ppp.log file:
+<pre>
+  SSL/TLS Header: TLS 1.0
+</pre>
+
+The client was built and linked against OpenSSL 1.0.x:
+<h4>Client ppp.log
+</h4>
+<pre>
+  using channel 23
+  Using interface ppp0
+  Connect: ppp0 &lt;--&gt; /dev/pts/1
+  sent [LCP ConfReq id=0x1 &lt;asyncmap 0x0&gt; &lt;magic 0x7ef7d078&gt;]
+  rcvd [LCP ConfReq id=0x1 &lt;mru 1450&gt; &lt;asyncmap 0x0&gt; &lt;auth eap&gt; &lt;magic 0xb172e99d&gt;]
+  sent [LCP ConfAck id=0x1 &lt;mru 1450&gt; &lt;asyncmap 0x0&gt; &lt;auth eap&gt; &lt;magic 0xb172e99d&gt;]
+  rcvd [LCP ConfAck id=0x1 &lt;asyncmap 0x0&gt; &lt;magic 0x7ef7d078&gt;]
+  rcvd [EAP Request id=0xae Identity &lt;Message "Name"&gt;]
+  EAP: Identity prompt "Name"
+  sent [EAP Response id=0xae Identity &lt;Name "pptp-client"&gt;]
+  rcvd [EAP Request id=0xaf TLS --S]
+  MTU = 1436
+  calling get_eaptls_secret
+  calling eaptls_init_ssl
+  Initializing SSL BIOs
+   -&gt; Handshake: Client Hello
+  sent [EAP Response id=0xaf TLS --- ...]
+  rcvd [EAP Request id=0xb0 TLS LM- ...]
+  sent [EAP Response id=0xb0 TLS Ack]
+  rcvd [EAP Request id=0xb1 TLS --- ...]
+   &lt;- Handshake: Server Hello
+   &lt;- Handshake: Certificate
+  certificate verify depth: 1
+  certificate verify depth: 0
+  Certificate CN: pptp-server , peer name pptp-server
+   &lt;- Handshake: Server Key Exchange
+   &lt;- Handshake: Certificate Request
+   &lt;- Handshake: Server Hello Done
+   -&gt; Handshake: Certificate
+   -&gt; Handshake: Client Key Exchange
+   -&gt; Handshake: Certificate Verify
+   -&gt; ChangeCipherSpec
+   -&gt; Handshake: Finished
+  sent [EAP Response id=0xb1 TLS LM- ...]
+  rcvd [EAP Request id=0xb2 TLS Ack]
+  sent [EAP Response id=0xb2 TLS --- ...]
+  rcvd [EAP Request id=0xb3 TLS --- ...]
+   &lt;- ChangeCipherSpec
+   &lt;- Handshake: Finished
+  sent [EAP Response id=0xb3 TLS Ack]
+  rcvd [EAP Success id=0xb4]
+  EAP authentication succeeded
+  sent [CCP ConfReq id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  rcvd [CCP ConfReq id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  sent [CCP ConfAck id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  rcvd [CCP ConfAck id=0x1 &lt;mppe +H -M +S -L -D -C&gt;]
+  MPPE 128-bit stateless compression enabled
+  sent [IPCP ConfReq id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 0.0.0.0&gt;]
+  rcvd [IPCP ConfReq id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.1&gt;]
+  sent [IPCP ConfAck id=0x1 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.1&gt;]
+  rcvd [IPCP ConfNak id=0x1 &lt;addr 172.16.1.10&gt;]
+  sent [IPCP ConfReq id=0x2 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.10&gt;]
+  rcvd [IPCP ConfAck id=0x2 &lt;compress VJ 0f 01&gt; &lt;addr 172.16.1.10&gt;]
+  local  IP address 172.16.1.10
+  remote IP address 172.16.1.1
+  Script /etc/ppp/ip-up started (pid 26686)
+  Script /etc/ppp/ip-up finished (pid 26686), status = 0x0
+  Terminating on signal 15
+  Connect time 5.3 minutes.
+  Sent 168 bytes, received 168 bytes.
+  Script /etc/ppp/ip-down started (pid 26690)
+  MPPE disabled
+  sent [LCP TermReq id=0x2 "MPPE disabled"]
+  sent [LCP TermReq id=0x3 "MPPE disabled"]
+  Script pptp pptp-server.example.org --nolaunchpppd finished (pid 26675), status = 0x0
+  Modem hangup
+  Connection terminated.
+</pre>
+
+</body>
+</html>
+

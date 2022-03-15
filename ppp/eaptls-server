@@ -1,0 +1,12 @@
+# Parameters for authentication using EAP-TLS (server)
+
+# client name (can be *)
+# server name (can be *)
+# client certificate file (optional, if unused put '-')
+# server certificate file (required)
+# CA certificate file (required)
+# server private key file (required)
+# allowed addresses (required, can be *)
+
+#client	server			-	/root/cert/server.crt			/root/cert/ca.crt		/root/cert/server.key			192.168.1.0/24
+*		pptp-server   	-	/etc/ppp/keys/pptp-server.crt	/etc/ppp/keys/ca.crt	/etc/ppp/keys/pptp-server.key	*
